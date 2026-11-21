@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="page">#F4F6FA</color>
+    <color name="card">#FFFFFF</color>
+    <color name="header_start">#1D4ED8</color>
+    <color name="header_end">#0EA5E9</color>
+    <color name="accent">#2563EB</color>
+    <color name="text_primary">#0F172A</color>
+    <color name="text_secondary">#64748B</color>
+</resources>
