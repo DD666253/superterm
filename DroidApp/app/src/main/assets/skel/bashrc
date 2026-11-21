@@ -1,0 +1,48 @@
+#!/system/bin/sh
+# superterm environment for sh (mksh) — sourced through $ENV
+
+DRIVE=/data/user/0/com.mucre.superterm/drive
+PREFIX=$DRIVE/usr
+export DRIVE PREFIX
+export PATH=$PREFIX/bin:/system/bin:/system/xbin
+export HOME=$DRIVE/home
+export TMPDIR=$PREFIX/tmp
+export TERMINFO=$PREFIX/share/terminfo
+export SHELL=$PREFIX/bin/sh
+export TERM=${TERM:-xterm-256color}
+export LANG=${LANG:-en_US.UTF-8}
+export ENV=$PREFIX/etc/bashrc
+
+_arch=$(uname -m 2>/dev/null || echo unknown)
+_rel=$(getprop ro.build.version.release 2>/dev/null || echo unknown)
+_tag=DATA
+if command -v su >/dev/null 2>&1; then
+    if su -c id 2>/dev/null | grep -q 'uid=0'; then _tag=Root; fi
+fi
+OSDR="Android-${_rel}-${_arch}-${_tag}"
+export OSDR
+
+eggtool() {
+    case "$1" in
+        help)   echo "暂无公告" ;;
+        by)     echo "版本号为Egg hacker1.0.0(beta)" ;;
+        ls)     echo "您当前目录是/usr/share/eggtool/files/，并且现在有0个文件夹，0个文件" ;;
+        moo)    echo "🐮Hahaha" ;;
+        gtk)    echo "手机架构: $(uname -m)" ;;
+        banner|logo)
+            ls
+            cat <<'EOF'
+ ___
+/   | () () |
+ \  ^  /
+  |||||
+  |||||
+鸡蛋工具 EggTool
+EOF
+            ;;
+        "")     echo "用法: eggtool [help|by|ls|moo|gtk|banner]" ;;
+        *)      echo "未知命令: $1"; echo "用法: eggtool [help|by|ls|moo|gtk|banner]" ;;
+    esac
+}
+
+PS1='${OSDR} $ '

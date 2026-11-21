@@ -1,0 +1,3 @@
+# 原生 pty 桥目录
+# 放入按 ABI 命名的 lib：arm64-v8a.so / armeabi-v7a.so / x86_64.so / x86.so
+# 即 jni/pty.c 交叉编译产物 libpty.so。

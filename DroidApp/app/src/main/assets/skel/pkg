@@ -1,0 +1,116 @@
+#!/system/bin/sh
+# pkg — superterm 包管理器 (apkManager)
+# 本地包仓库: $PREFIX/var/pkg/repo/<name>.zip  (zip 内为相对 $PREFIX 的路径)
+
+PREFIX=${PREFIX:-/data/user/0/com.mucre.superterm/drive/usr}
+DB=$PREFIX/var/pkg/db
+REPO=$PREFIX/var/pkg/repo
+mkdir -p "$DB" "$REPO" 2>/dev/null
+
+usage() {
+    echo "pkg - superterm package manager"
+    echo ""
+    echo "用法: pkg <command> [package]"
+    echo ""
+    echo "  install <name>   从本地仓库安装软件包"
+    echo "  remove  <name>   卸载软件包"
+    echo "  list             列出已安装软件包"
+    echo "  search <kw>      在仓库中搜索"
+    echo "  info   <name>    显示软件包信息"
+    echo "  update           扫描本地仓库并刷新索引"
+    echo "  help             显示本帮助"
+}
+
+pkg_list() {
+    if [ -z "$(ls -A "$DB" 2>/dev/null)" ]; then
+        echo "(没有已安装的软件包)"
+        return
+    fi
+    for f in "$DB"/*; do
+        [ -f "$f" ] || continue
+        echo "$(basename "$f") $(cat "$f" 2>/dev/null)"
+    done
+}
+
+pkg_install() {
+    name=$1
+    [ -z "$name" ] && { echo "用法: pkg install <name>"; return 1; }
+    if [ -f "$DB/$name" ]; then
+        echo "$name 已安装"
+        return 0
+    fi
+    src="$REPO/$name.zip"
+    if [ ! -f "$src" ]; then
+        echo "找不到软件包: $name"
+        echo "本地仓库目录: $REPO"
+        return 1
+    fi
+    echo "正在安装 $name ..."
+    if ! command -v unzip >/dev/null 2>&1; then
+        echo "错误: 需要 unzip（busybox 提供）"
+        return 1
+    fi
+    unzip -o -q "$src" -d "$PREFIX" || { echo "解包失败"; return 1; }
+    echo "$(date +%Y-%m-%d) installed from local repo" > "$DB/$name"
+    echo "$name 安装完成"
+}
+
+pkg_remove() {
+    name=$1
+    [ -z "$name" ] && { echo "用法: pkg remove <name>"; return 1; }
+    if [ ! -f "$DB/$name" ]; then
+        echo "$name 未安装"
+        return 1
+    fi
+    if [ -f "$PREFIX/var/pkg/$name.files" ]; then
+        while read -r line; do
+            [ -n "$line" ] && rm -rf "$PREFIX/$line"
+        done < "$PREFIX/var/pkg/$name.files"
+    fi
+    rm -f "$DB/$name" "$PREFIX/var/pkg/$name.files"
+    echo "$name 已卸载"
+}
+
+pkg_search() {
+    kw=$1
+    found=0
+    for f in "$REPO"/*.zip; do
+        [ -f "$f" ] || continue
+        n=$(basename "$f" .zip)
+        case "$n" in
+            *"$kw"*) echo "$n"; found=1 ;;
+        esac
+    done
+    [ "$found" = 0 ] && echo "没有匹配的软件包"
+}
+
+pkg_info() {
+    name=$1
+    [ -z "$name" ] && { echo "用法: pkg info <name>"; return 1; }
+    if [ -f "$DB/$name" ]; then
+        echo "名称: $name"
+        echo "状态: 已安装"
+        cat "$DB/$name"
+    elif [ -f "$REPO/$name.zip" ]; then
+        echo "名称: $name"
+        echo "状态: 未安装 (仓库中有)"
+        ls -lh "$REPO/$name.zip"
+    else
+        echo "找不到软件包: $name"
+    fi
+}
+
+case "$1" in
+    install) shift; pkg_install "$1" ;;
+    remove|uninstall) shift; pkg_remove "$1" ;;
+    list) pkg_list ;;
+    search) shift; pkg_search "$1" ;;
+    info) shift; pkg_info "$1" ;;
+    update)
+        echo "仓库: $REPO"
+        ls "$REPO"/*.zip 2>/dev/null | while read -r f; do echo "  $(basename "$f")"; done
+        echo "索引已刷新"
+        ;;
+    ""|help|-h|--help) usage ;;
+    *) echo "未知命令: $1"; usage; exit 1 ;;
+esac

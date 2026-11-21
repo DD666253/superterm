@@ -1,0 +1,22 @@
+#!/system/bin/sh
+# eggtool — 鸡蛋工具（superterm 内置）
+case "$1" in
+    help)   echo "暂无公告" ;;
+    by)     echo "版本号为Egg hacker1.0.0(beta)" ;;
+    ls)     echo "您当前目录是/usr/share/eggtool/files/，并且现在有0个文件夹，0个文件" ;;
+    moo)    echo "🐮Hahaha" ;;
+    gtk)    echo "手机架构: $(uname -m)" ;;
+    banner|logo)
+        ls
+        cat <<'EOF'
+ ___
+/   | () () |
+ \  ^  /
+  |||||
+  |||||
+鸡蛋工具 EggTool
+EOF
+        ;;
+    "")     echo "用法: eggtool [help|by|ls|moo|gtk|banner]" ;;
+    *)      echo "未知命令: $1"; echo "用法: eggtool [help|by|ls|moo|gtk|banner]" ;;
+esac
