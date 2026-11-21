@@ -280,3 +280,85 @@ public class TerminalView extends View {
             default: break;
         }
     }
+
+    // ---------------- input ----------------
+    @Override
+    public boolean onCheckIsTextEditor() { return true; }
+
+    @Override
+    public InputConnection onCreateInputConnection(EditorInfo outAttrs) {
+        outAttrs.inputType = InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+                | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD;
+        outAttrs.imeOptions = EditorInfo.IME_FLAG_NO_EXTRACT_UI;
+        return new BaseInputConnection(this, false) {
+            @Override
+            public boolean commitText(CharSequence text, int newCursorPosition) {
+                if (listener != null) listener.onTextInput(text.toString());
+                return true;
+            }
+
+            @Override
+            public boolean sendKeyEvent(KeyEvent event) {
+                if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                    dispatchKey(event.getKeyCode(), event.isCtrlPressed(), event.isAltPressed());
+                }
+                return true;
+            }
+
+            @Override
+            public boolean deleteSurroundingText(int beforeLength, int afterLength) {
+                if (listener != null) for (int i = 0; i < Math.max(1, beforeLength); i++) listener.onTextInput("\u007f");
+                return true;
+            }
+
+            @Override
+            public boolean performEditorAction(int actionCode) {
+                if (listener != null) listener.onTextInput("\r");
+                return true;
+            }
+        };
+    }
+
+    public void dispatchKey(int keyCode, boolean ctrl, boolean alt) {
+        if (listener == null) return;
+        String seq = null;
+        switch (keyCode) {
+            case KeyEvent.KEYCODE_DPAD_UP: seq = "\u001b[A"; break;
+            case KeyEvent.KEYCODE_DPAD_DOWN: seq = "\u001b[B"; break;
+            case KeyEvent.KEYCODE_DPAD_RIGHT: seq = "\u001b[C"; break;
+            case KeyEvent.KEYCODE_DPAD_LEFT: seq = "\u001b[D"; break;
+            case KeyEvent.KEYCODE_DEL:
+            case KeyEvent.KEYCODE_FORWARD_DEL: seq = "\u007f"; break;
+            case KeyEvent.KEYCODE_ENTER: seq = "\r"; break;
+            case KeyEvent.KEYCODE_TAB: seq = "\t"; break;
+            case KeyEvent.KEYCODE_ESCAPE: seq = "\u001b"; break;
+            case KeyEvent.KEYCODE_MOVE_HOME: seq = "\u001b[H"; break;
+            case KeyEvent.KEYCODE_MOVE_END: seq = "\u001b[F"; break;
+            case KeyEvent.KEYCODE_PAGE_UP: seq = "\u001b[5~"; break;
+            case KeyEvent.KEYCODE_PAGE_DOWN: seq = "\u001b[6~"; break;
+            default: break;
+        }
+        if (seq != null) { listener.onTextInput(alt ? "\u001b" + seq : seq); return; }
+        listener.onKeyCode(keyCode, ctrl, alt);
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent e) {
+        if (e.getAction() == MotionEvent.ACTION_DOWN) {
+            requestFocus();
+            showKeyboard();
+            return true;
+        }
+        return super.onTouchEvent(e);
+    }
+
+    public void showKeyboard() {
+        requestFocus();
+        android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager)
+                getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (imm != null) imm.showSoftInput(this, 0);
+    }
+
+    public int getCols() { return cols; }
+    public int getRows() { return rows; }
+}
